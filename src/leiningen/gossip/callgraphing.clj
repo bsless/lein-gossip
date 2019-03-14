@@ -227,3 +227,9 @@ Return a map {abbrev1 ns1, abbrev2 ns2, ... }
           [namespace dot] (clj-to-dot file)
           filename (str tar-dir "/" (.replace namespace "." "_") ".dot")]
       (spit filename dot))))
+
+
+(comment
+  (#'clojure.core/load-data-readers)
+  (set! *data-readers* (.getRawRoot #'*data-readers*)))
+
