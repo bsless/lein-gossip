@@ -36,6 +36,32 @@
   [code]
   (first (filter #(and (coll? %) (= 'ns (first %))) code)))
 
+(defn requires->map
+  [code]
+  (map (fn [[lib & {:keys [refer as]}]] {:lib lib :refer refer :as as}) code))
+
+(defn uses->map
+  [code]
+  (let [collected (map (fn [[lib & {:keys [only] :as args}]]
+                         {:lib lib :only only}) code)]
+    (into {} (mapcat (fn [{lib :lib only :only}] (map (fn [f] {f lib}) only)) collected))))
+
+(defn ns->map
+  "Parse namespace code into map of format:
+  {:ns name
+   :require [requires]
+   :use [uses]}"
+  [code]
+  (let [name (second code)
+        body (drop 2 code)
+        ns-map (reduce (fn [accum [k & vs]] (assoc accum k vs))
+                       {}
+                       body)
+        ns-map (assoc ns-map :ns name)
+        ns-map (update ns-map :require requires->map)
+        ns-map (update ns-map :use uses->map)]
+    ns-map))
+
 (defn select-defs
   "code is a .clj file that has been passed through the reader. This
    function returns all of the (defn ...) lists. Right now it only finds
