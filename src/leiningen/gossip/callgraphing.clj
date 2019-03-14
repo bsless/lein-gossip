@@ -72,12 +72,12 @@ With a list of defn lists, it returns what the defs name.
 
 (defn create-required-namespace-lookup
   "
-Given a ns declaration, find the :require section and extract a mapping
-for every namespace that is used so that functions from that namespace
-can be identified by the full namespace name.
+  Given a ns declaration, find the :require section and extract a mapping
+  for every namespace that is used so that functions from that namespace
+  can be identified by the full namespace name.
 
-Return a map {abbrev1 ns1, abbrev2 ns2, ... }
-"
+  Return a map {abbrev1 ns1, abbrev2 ns2, ... }
+  "
   [namespace]
   (let [require-expression (first (filter #(and (seq? %) (= :require (first %))) namespace))
         requires (rest require-expression)]
