@@ -34,9 +34,7 @@
   "code is the .clj file that has been passed through the reader. This
    function returns the (ns ...) list."
   [code]
-  (first (drop-while #(not= 'ns (first %)) code))
-  #_(first (filter #(and (coll? %) (= 'ns (first %))) code))
-  )
+  (first (drop-while #(not= 'ns (first %)) code)))
 
 (defn requires->map
   [code]
