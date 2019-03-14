@@ -53,23 +53,24 @@ With a list of defn lists, it returns what the defs name.
 
 ;; (:use [namespace] or [namespace :only [f1 f2]])
 
-(defn process-required-namespace [namespace]
+(defn process-required-namespace
   "
-Under the assumption that all namespaces specified in the :require section
-of the ns declaration are of the form [namespace] or [namespace :as abbreviation].
+  Under the assumption that all namespaces specified in the :require section
+  of the ns declaration are of the form [namespace] or [namespace :as abbreviation].
 
-Because any function in that namespace will appear as namespace/f or abbreviation/f
-in the code, we want to create a mapping between abbrevations and namespaces. This function
-assists with this by returning [namespace namespace] or [abbreviation namespace].
-"
-  (if (seq? namespace)
+  Because any function in that namespace will appear as namespace/f or abbreviation/f
+  in the code, we want to create a mapping between abbrevations and namespaces. This function
+  assists with this by returning [namespace namespace] or [abbreviation namespace].
+  "
+  [namespace]
+  (if (sequential? namespace)
     (let [namespace (vec namespace)]
       (if (= 3 (count namespace))
         [(namespace 2) (namespace 0)]
         [(namespace 0) (namespace 0)]))
     [namespace namespace]))
 
-(defn create-required-namespace-lookup [namespace]
+(defn create-required-namespace-lookup
   "
 Given a ns declaration, find the :require section and extract a mapping
 for every namespace that is used so that functions from that namespace
@@ -77,24 +78,26 @@ can be identified by the full namespace name.
 
 Return a map {abbrev1 ns1, abbrev2 ns2, ... }
 "
+  [namespace]
   (let [require-expression (first (filter #(and (seq? %) (= :require (first %))) namespace))
         requires (rest require-expression)]
     (into {} (map process-required-namespace requires))))
 
-(defn create-used-namespace-lookup [namespace]
+(defn create-used-namespace-lookup
   "
-Given a ns declaration, we extract the :use section and return a map
-of functions that have been used and the namespace they are used
-from. This assumes that all used namespaces use the [namespace :only [f1 f2]] form
-(as they should).
+  Given a ns declaration, we extract the :use section and return a map
+  of functions that have been used and the namespace they are used
+  from. This assumes that all used namespaces use the [namespace :only [f1 f2]] form
+  (as they should).
 
-Return value is a map {f1 ns1, f2 ns1, f3 ns2, ... }
-"
+  Return value is a map {f1 ns1, f2 ns1, f3 ns2, ... }
+  "
+  [namespace]
   (let [use-expression (first (filter #(and (seq? %) (= :use (first %))) namespace))
         uses (rest use-expression)]
     (if (or (empty? uses) (not (vector? (first uses))))
       {}
-      (into {} (mapcat #(if (not (seq? %)) () (map (fn [used-fn] [used-fn (% 0)]) (% 2))) uses)))))
+      (into {} (mapcat #(if (not (sequential? %)) () (map (fn [used-fn] [used-fn (% 0)]) (% 2))) uses)))))
 
 (defn parse-namespace-qualified-function [required-ns-lookup symbol-name]
   (let [string-name (str symbol-name)
@@ -182,7 +185,7 @@ Return value is a map {f1 ns1, f2 ns1, f3 ns2, ... }
 (defmethod edge-to-string [:defn :defn] [nodes>codes func call]
   (str (nodes>codes (func :name)) "->" (nodes>codes (call :name)) " " (style [:defn :defn]) ";\n"))
 
-(defn identify-distinct-names-called [calls]
+(defn identify-distinct-names-called
   "A referenced name can be a value in the current namespace, a name used from another namespace or a name referenced
    by a required namespace. In the last case, because the edge is from the name to the namespace, we only want
    one edge even if there are multiple names called in the namespace. This function removes duplicate names
@@ -190,6 +193,7 @@ Return value is a map {f1 ns1, f2 ns1, f3 ns2, ... }
 
    Essentially, we are reducing the metadata about calls from :name, :type, and :calls to just :name and :type
    distincting."
+  [calls]
   (distinct (map #(select-keys % [:name :type]) calls)))
 
 (defn clj-to-dot [filename]
