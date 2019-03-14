@@ -184,8 +184,12 @@ With a list of defn lists, it returns what the defs name.
   (let [namespace (select-ns code)
         defs (select-defs code)
         def-names (into #{} (extract-def-names defs))
-        used-ns-lookup (create-used-namespace-lookup namespace)
-        required-ns-lookup (create-required-namespace-lookup namespace)]
+        ns-map (ns->map namespace)
+        ;; used-ns-lookup (create-used-namespace-lookup namespace)
+        used-ns-lookup (ns-map->used-lookup ns-map)
+        ;; required-ns-lookup (create-required-namespace-lookup namespace)
+        required-ns-lookup (ns-map->required-lookup ns-map)
+        ]
     (select-calls-for-each-def def-names used-ns-lookup required-ns-lookup defs)))
 
 (def ^:dynamic *formatting*
