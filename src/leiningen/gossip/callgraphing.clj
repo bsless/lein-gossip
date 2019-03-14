@@ -109,6 +109,37 @@ With a list of defn lists, it returns what the defs name.
         requires (rest require-expression)]
     (into {} (map process-required-namespace requires))))
 
+(defn ns-map->required-lookup
+  "
+  Given a ns map as returned by `ns-map`, return a mapping
+  of a name space abbreviation or usage to the namespace, i.e.:
+    {abbrev1 ns1, abbrev2 ns2, ns3 ns3, ... }
+  "
+  [ns-map]
+  (reduce (fn [accum {lib :lib ref :refer as :as}]
+            (assoc accum (or as lib) lib)) {}
+          (get ns-map :require ())))
+
+(defn ns-map->used-lookup
+  "
+  Given a ns map as returned by `ns-map`, return a map
+  Containing the :use and :refer statements of the form:
+    {f1 ns1, f2 ns1, f3 ns2, ... }
+
+  This assumes that all used namespaces use the [namespace :only [f1 f2]] form,
+  as the original author believes they should be.
+  This author tends to agree.
+  "
+  [{reqs :require used :use
+    :or {reqs ()
+         used {}}}]
+  (reduce (fn [accum {lib :lib referred :refer}]
+            (if referred
+              (reduce (fn [accum r] (assoc accum r lib))
+                      accum
+                      referred)
+                accum)) used reqs))
+
 (defn create-used-namespace-lookup
   "
   Given a ns declaration, we extract the :use section and return a map
