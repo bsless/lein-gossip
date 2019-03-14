@@ -34,7 +34,9 @@
   "code is the .clj file that has been passed through the reader. This
    function returns the (ns ...) list."
   [code]
-  (first (filter #(and (coll? %) (= 'ns (first %))) code)))
+  (first (drop-while #(not= 'ns (first %)) code))
+  #_(first (filter #(and (coll? %) (= 'ns (first %))) code))
+  )
 
 (defn requires->map
   [code]
@@ -71,43 +73,10 @@
                 (contains? #{'defn 'def 'defn- 'defmulti 'defmethod} (first %)))
           code))
 
-(defn extract-def-names [defs]
-  "
-With a list of defn lists, it returns what the defs name.
-"
+(defn extract-def-names
+  "With a list of defn lists, it returns what the defs name."
+  [defs]
   (map #(nth % 1) defs))
-
-;; (:use [namespace] or [namespace :only [f1 f2]])
-
-(defn process-required-namespace
-  "
-  Under the assumption that all namespaces specified in the :require section
-  of the ns declaration are of the form [namespace] or [namespace :as abbreviation].
-
-  Because any function in that namespace will appear as namespace/f or abbreviation/f
-  in the code, we want to create a mapping between abbrevations and namespaces. This function
-  assists with this by returning [namespace namespace] or [abbreviation namespace].
-  "
-  [namespace]
-  (if (sequential? namespace)
-    (let [namespace (vec namespace)]
-      (if (= 3 (count namespace))
-        [(namespace 2) (namespace 0)]
-        [(namespace 0) (namespace 0)]))
-    [namespace namespace]))
-
-(defn create-required-namespace-lookup
-  "
-  Given a ns declaration, find the :require section and extract a mapping
-  for every namespace that is used so that functions from that namespace
-  can be identified by the full namespace name.
-
-  Return a map {abbrev1 ns1, abbrev2 ns2, ... }
-  "
-  [namespace]
-  (let [require-expression (first (filter #(and (seq? %) (= :require (first %))) namespace))
-        requires (rest require-expression)]
-    (into {} (map process-required-namespace requires))))
 
 (defn ns-map->required-lookup
   "
@@ -138,23 +107,7 @@ With a list of defn lists, it returns what the defs name.
               (reduce (fn [accum r] (assoc accum r lib))
                       accum
                       referred)
-                accum)) used reqs))
-
-(defn create-used-namespace-lookup
-  "
-  Given a ns declaration, we extract the :use section and return a map
-  of functions that have been used and the namespace they are used
-  from. This assumes that all used namespaces use the [namespace :only [f1 f2]] form
-  (as they should).
-
-  Return value is a map {f1 ns1, f2 ns1, f3 ns2, ... }
-  "
-  [namespace]
-  (let [use-expression (first (filter #(and (seq? %) (= :use (first %))) namespace))
-        uses (rest use-expression)]
-    (if (or (empty? uses) (not (vector? (first uses))))
-      {}
-      (into {} (mapcat #(if (not (sequential? %)) () (map (fn [used-fn] [used-fn (% 0)]) (% 2))) uses)))))
+              accum)) used reqs))
 
 (defn parse-namespace-qualified-function [required-ns-lookup symbol-name]
   (let [string-name (str symbol-name)
@@ -185,11 +138,8 @@ With a list of defn lists, it returns what the defs name.
         defs (select-defs code)
         def-names (into #{} (extract-def-names defs))
         ns-map (ns->map namespace)
-        ;; used-ns-lookup (create-used-namespace-lookup namespace)
         used-ns-lookup (ns-map->used-lookup ns-map)
-        ;; required-ns-lookup (create-required-namespace-lookup namespace)
-        required-ns-lookup (ns-map->required-lookup ns-map)
-        ]
+        required-ns-lookup (ns-map->required-lookup ns-map)]
     (select-calls-for-each-def def-names used-ns-lookup required-ns-lookup defs)))
 
 (def ^:dynamic *formatting*
@@ -288,7 +238,6 @@ With a list of defn lists, it returns what the defs name.
           [namespace dot] (clj-to-dot file)
           filename (str tar-dir "/" (.replace namespace "." "_") ".dot")]
       (spit filename dot))))
-
 
 (comment
   (#'clojure.core/load-data-readers)
