@@ -1,5 +1,5 @@
 (ns leiningen.gossip.core
-  (:use 
+  (:use
     [leiningen.gossip.callgraphing :only [generate-dot-files-from-clj-files]]))
 
 (defn gossip-about [src-dir tar-dir]
